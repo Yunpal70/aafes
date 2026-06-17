@@ -371,7 +371,7 @@
             <!-- 키워드 섹션 -->
             <div class="form-group">
                 <label id="labelKeywords">🔑 오늘의 키워드</label>
-                <select id="keywordSelect" onchange="addKeyword()">
+                <select id="keywordSelect">
                     <option value="">키워드를 추가하세요...</option>
                     <option value="customer_first">고객 우선 (Customer First)</option>
                     <option value="excellence">탁월성 (Excellence)</option>
@@ -557,7 +557,10 @@
             document.getElementById('labelWeather').textContent = t.labelWeather;
             document.getElementById('labelFocus').textContent = t.labelFocus;
             document.getElementById('labelKeywords').textContent = t.labelKeywords;
-            document.getElementById('labelVoice').textContent = t.labelVoice;
+            const labelVoiceEl = document.getElementById('labelVoice');
+            const statusSpan = document.getElementById('voiceLoadStatus');
+            labelVoiceEl.textContent = t.labelVoice + ' ';
+            if (statusSpan) labelVoiceEl.appendChild(statusSpan);
             document.getElementById('btnPlay').textContent = t.btnPlay;
             document.getElementById('btnReset').textContent = t.btnReset;
             document.getElementById('btnHistory').textContent = t.btnHistory;
@@ -1101,6 +1104,7 @@
             document.getElementById('weather').addEventListener('input', updatePreview);
             document.getElementById('focusSelect').addEventListener('change', updatePreview);
             document.getElementById('customGreeting').addEventListener('input', updatePreview);
+            document.getElementById('keywordSelect').addEventListener('change', addKeyword);
         }
 
         // 날씨 가져오기 (옵션)
