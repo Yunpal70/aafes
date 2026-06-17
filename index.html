@@ -189,6 +189,32 @@
             opacity: 0.8;
         }
 
+        .keyword-btn-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .keyword-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 2px solid #4facfe;
+            background: white;
+            color: #4facfe;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .keyword-btn.active {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-color: transparent;
+        }
+
         .preview {
             background: #f9fafb;
             padding: 16px;
@@ -371,18 +397,16 @@
             <!-- 키워드 섹션 -->
             <div class="form-group">
                 <label id="labelKeywords">🔑 오늘의 키워드</label>
-                <select id="keywordSelect">
-                    <option value="">키워드를 추가하세요...</option>
-                    <option value="customer_first">고객 우선 (Customer First)</option>
-                    <option value="excellence">탁월성 (Excellence)</option>
-                    <option value="integrity">정직성 (Integrity)</option>
-                    <option value="respect">존중 (Respect)</option>
-                    <option value="safety">안전 (Safety)</option>
-                    <option value="teamwork">협력 (Teamwork)</option>
-                    <option value="innovation">혁신 (Innovation)</option>
-                    <option value="accountability">책임감 (Accountability)</option>
-                </select>
-                <div class="keyword-container" id="keywordContainer"></div>
+                <div class="keyword-btn-grid" id="keywordBtnGrid">
+                    <button class="keyword-btn" onclick="toggleKeyword('customer_first')">고객 우선</button>
+                    <button class="keyword-btn" onclick="toggleKeyword('excellence')">탁월성</button>
+                    <button class="keyword-btn" onclick="toggleKeyword('integrity')">정직성</button>
+                    <button class="keyword-btn" onclick="toggleKeyword('respect')">존중</button>
+                    <button class="keyword-btn" onclick="toggleKeyword('safety')">안전</button>
+                    <button class="keyword-btn" onclick="toggleKeyword('teamwork')">협력</button>
+                    <button class="keyword-btn" onclick="toggleKeyword('innovation')">혁신</button>
+                    <button class="keyword-btn" onclick="toggleKeyword('accountability')">책임감</button>
+                </div>
             </div>
 
             <!-- 미리보기 -->
@@ -621,19 +645,21 @@
             `;
             focusSelect.value = currentFocus;
 
-            // 키워드 드롭다운
-            const keywordSelect = document.getElementById('keywordSelect');
-            keywordSelect.innerHTML = `
-                <option value="">${currentLanguage === 'ko' ? '키워드를 추가하세요...' : 'Add keyword...'}</option>
-                <option value="customer_first">${t.keywords.customer_first}</option>
-                <option value="excellence">${t.keywords.excellence}</option>
-                <option value="integrity">${t.keywords.integrity}</option>
-                <option value="respect">${t.keywords.respect}</option>
-                <option value="safety">${t.keywords.safety}</option>
-                <option value="teamwork">${t.keywords.teamwork}</option>
-                <option value="innovation">${t.keywords.innovation}</option>
-                <option value="accountability">${t.keywords.accountability}</option>
-            `;
+            // 키워드 버튼 언어 업데이트
+            const btnLabels = {
+                customer_first: t.keywords.customer_first,
+                excellence: t.keywords.excellence,
+                integrity: t.keywords.integrity,
+                respect: t.keywords.respect,
+                safety: t.keywords.safety,
+                teamwork: t.keywords.teamwork,
+                innovation: t.keywords.innovation,
+                accountability: t.keywords.accountability
+            };
+            document.querySelectorAll('.keyword-btn').forEach(btn => {
+                const key = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                if (btnLabels[key]) btn.textContent = btnLabels[key];
+            });
         }
 
         // 날짜 업데이트
@@ -686,37 +712,36 @@
             setTimeout(() => updatePreview(), 0);
         }
 
-        // 키워드 추가
-        function addKeyword() {
-            const select = document.getElementById('keywordSelect');
-            const value = select.value;
-            if (!value || selectedKeywords.includes(value)) {
-                select.value = '';
-                return;
+        // 키워드 토글 (버튼 방식)
+        function toggleKeyword(key) {
+            const idx = selectedKeywords.indexOf(key);
+            if (idx === -1) {
+                selectedKeywords.push(key);
+            } else {
+                selectedKeywords.splice(idx, 1);
             }
-            selectedKeywords.push(value);
-            renderKeywords();
-            select.value = '';
+            renderKeywordButtons();
             updatePreview();
         }
 
-        // 키워드 제거
+        // 버튼 활성 상태 갱신
+        function renderKeywordButtons() {
+            document.querySelectorAll('.keyword-btn').forEach(btn => {
+                const key = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                btn.classList.toggle('active', selectedKeywords.includes(key));
+            });
+        }
+
+        // 키워드 제거 (히스토리 로드 시 사용)
         function removeKeyword(value) {
             selectedKeywords = selectedKeywords.filter(k => k !== value);
-            renderKeywords();
+            renderKeywordButtons();
             updatePreview();
         }
 
-        // 키워드 렌더링
+        // 키워드 렌더링 (하위 호환)
         function renderKeywords() {
-            const container = document.getElementById('keywordContainer');
-            const t = translations[currentLanguage].keywords;
-            container.innerHTML = selectedKeywords.map(k =>
-                `<div class="keyword-tag">
-                    ${t[k] || k}
-                    <span class="remove" onclick="removeKeyword('${k}')">&times;</span>
-                </div>`
-            ).join('');
+            renderKeywordButtons();
         }
 
         // 미리보기 업데이트
@@ -1062,6 +1087,7 @@
             document.getElementById('weather').value = entry.weather || '';
             document.getElementById('focusSelect').value = entry.focus || '';
             selectedKeywords = entry.keywords || [];
+            renderKeywordButtons();
 
             // 인사말 로드
             const greetingSelect = document.getElementById('greetingSelect');
@@ -1122,7 +1148,7 @@
             document.getElementById('weather').addEventListener('input', updatePreview);
             document.getElementById('focusSelect').addEventListener('change', updatePreview);
             document.getElementById('customGreeting').addEventListener('input', updatePreview);
-            document.getElementById('keywordSelect').addEventListener('change', addKeyword);
+            // keyword buttons use onclick directly
         }
 
         // 날씨 가져오기 (옵션)
