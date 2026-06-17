@@ -1182,7 +1182,9 @@
                         'Heavy snow': '폭설'
                     };
 
-                    const korDesc = weatherMap[desc] || desc;
+                    const korDesc = weatherMap[desc] ||
+                        weatherMap[Object.keys(weatherMap).find(k => k.toLowerCase() === desc.toLowerCase())] ||
+                        '맑음';
 
                     weatherInput.value = currentLanguage === 'ko'
                         ? `${korDesc}, ${temp}도`
