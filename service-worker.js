@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aafes-briefing-v1';
+const CACHE_NAME = 'aafes-briefing-v2';
 const urlsToCache = [
   './',
   './index.html',
