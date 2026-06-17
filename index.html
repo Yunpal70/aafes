@@ -913,15 +913,33 @@
                 ? now.toLocaleDateString('ko-KR', {year:'numeric',month:'long',day:'numeric',weekday:'long'})
                 : now.toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric',weekday:'long'});
 
-            let fullText = (currentLanguage === 'ko' ? '오늘은 ' : 'Today is ') + dateText + '. ';
-            if (greeting) fullText += greeting + '. ';
-            if (weather) fullText += (currentLanguage === 'ko' ? '오늘 날씨는 ' : "Today's weather is ") + weather + '. ';
-            if (focus) fullText += (currentLanguage === 'ko' ? '오늘의 포커스는 ' : "Today's focus is ") + focus + '. ';
-            if (selectedKeywords.length > 0) {
-                const kw = selectedKeywords.map(k => t.keywords[k] || k).join(', ');
-                fullText += (currentLanguage === 'ko' ? '오늘의 키워드는 ' : 'Keywords: ') + kw + '. ';
+            const parts = [];
+
+            if (currentLanguage === 'ko') {
+                parts.push(`${greeting ? greeting + '.' : '안녕하세요, 여러분.'}`);
+                parts.push(`오늘은 ${dateText}입니다.`);
+                if (weather) parts.push(`현재 날씨는 ${weather}입니다. 외출 시 참고하시기 바랍니다.`);
+                if (focus) parts.push(`오늘의 포커스는 "${focus}"입니다. 업무 전반에 걸쳐 이 점을 염두에 두고 최선을 다해 주시기 바랍니다.`);
+                if (selectedKeywords.length > 0) {
+                    const kw = selectedKeywords.map(k => t.keywords[k] || k);
+                    const kwText = kw.length === 1 ? kw[0] : kw.slice(0, -1).join(', ') + ' 그리고 ' + kw[kw.length - 1];
+                    parts.push(`오늘의 키워드는 ${kwText}입니다. 이 가치를 실천하는 하루가 되길 바랍니다.`);
+                }
+                parts.push(`Family Serving Family 정신으로 오늘도 함께 최선을 다합시다. 감사합니다.`);
+            } else {
+                parts.push(`${greeting ? greeting + '.' : 'Good morning, everyone.'}`);
+                parts.push(`Today is ${dateText}.`);
+                if (weather) parts.push(`Today's weather is ${weather}. Please plan accordingly.`);
+                if (focus) parts.push(`Our focus for today is "${focus}". Let's keep this in mind throughout the day.`);
+                if (selectedKeywords.length > 0) {
+                    const kw = selectedKeywords.map(k => t.keywords[k] || k);
+                    const kwText = kw.length === 1 ? kw[0] : kw.slice(0, -1).join(', ') + ' and ' + kw[kw.length - 1];
+                    parts.push(`Today's keywords are ${kwText}. Let's put these values into practice.`);
+                }
+                parts.push(`As always, Family Serving Family. Let's make it a great day. Thank you.`);
             }
-            fullText += currentLanguage === 'ko' ? '오늘도 함께해 주셔서 감사합니다.' : 'Thank you everyone for being here today.';
+
+            const fullText = parts.join(' ');
 
             const chunks = splitText(fullText);
 
@@ -1287,11 +1305,11 @@
                                 'Breezy': '산들바람'
                             };
 
-                            // 대소문자 구분 없이 매칭
+                            // 대소문자 구분 없이 매칭, 매칭 안되면 '맑음' 기본값
                             const korDesc = weatherMap[desc] ||
                                            weatherMap[desc.toLowerCase()] ||
                                            weatherMap[Object.keys(weatherMap).find(key => key.toLowerCase() === desc.toLowerCase())] ||
-                                           desc;
+                                           '맑음';
 
                             // 디버그: 번역 결과 확인
                             console.log('🌤️ 번역 결과:', korDesc, '(원본:', desc + ')');
