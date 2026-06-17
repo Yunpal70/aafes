@@ -1401,11 +1401,26 @@
             showStatus(installMsg, 'info');
         });
 
-        // Service Worker 등록
+        // Service Worker 등록 + 자동 업데이트
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js')
-                .then(() => console.log('Service Worker registered'))
+                .then(reg => {
+                    // 새 버전 감지 시 자동 반영
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'activated') {
+                                window.location.reload();
+                            }
+                        });
+                    });
+                })
                 .catch(() => console.log('Service Worker registration failed'));
+
+            // SW가 교체되면 페이지 자동 새로고침
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
         }
     </script>
 </body>
