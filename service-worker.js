@@ -1,82 +1,62 @@
-const CACHE_NAME = 'aafes-briefing-v4';
+const CACHE_NAME = 'aafes-briefing-v5';
 const urlsToCache = [
-  './',
-  './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
 
-// 설치 이벤트
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch(err => {
-        console.log('Cache installation failed:', err);
-      })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache)).catch(() => {})
   );
 });
 
-// 활성화 이벤트
 self.addEventListener('activate', event => {
   event.waitUntil(
     Promise.all([
       clients.claim(),
-      caches.keys().then(cacheNames => {
-        return Promise.all(
-          cacheNames.map(cacheName => {
-            if (cacheName !== CACHE_NAME) {
-              console.log('Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
+      caches.keys().then(names =>
+        Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
+      )
     ])
   );
 });
 
-// Fetch 이벤트
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // 캐시에 있으면 캐시 반환
-        if (response) {
+  const url = new URL(event.request.url);
+
+  // 외부 API는 항상 네트워크
+  if (!url.origin.includes(self.location.origin)) {
+    event.respondWith(fetch(event.request).catch(() => new Response('', { status: 503 })));
+    return;
+  }
+
+  // index.html(네비게이션)은 항상 네트워크 우선 → 실패 시 캐시
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('index.html') || url.pathname.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return response;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // 나머지 정적 파일은 캐시 우선
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+      return fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
-
-        // 외부 API (날씨 등)는 네트워크로만
-        if (event.request.url.includes('wttr.in')) {
-          return fetch(event.request);
-        }
-
-        // 네트워크 요청
-        return fetch(event.request).then(
-          response => {
-            // 유효하지 않은 응답은 캐시하지 않음
-            if (!response || response.status !== 200 || response.type === 'error') {
-              return response;
-            }
-
-            // 응답 복제 후 캐시에 저장
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        ).catch(() => {
-          // 네트워크 실패 시 기본 캐시 반환
-          return caches.match('./index.html');
-        });
-      })
+        return response;
+      });
+    })
   );
 });
