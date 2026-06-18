@@ -469,9 +469,11 @@
         let currentAudio = null;
 
         // Supertone API 설정
-        const SUPERTONE_API_KEY = '288e4041c5a49e6aaede9e0551783c63';
-        const SUPERTONE_BASE = 'https://supertoneapi.com/v1';
-        // TTS 프록시 (CORS 우회) - 배포 후 Worker URL로 교체
+        // ⚠️ SECURITY: API 키는 클라이언트에 노출하지 않음 - Cloudflare Worker에서만 사용
+        // const SUPERTONE_API_KEY = 'REMOVED_FOR_SECURITY';
+        // const SUPERTONE_BASE = 'https://supertoneapi.com/v1';
+
+        // TTS 프록시 (CORS 우회 및 API 키 보호)
         const PROXY_BASE = 'https://supertone-proxy.hanmonument.workers.dev';
 
         // 번역 데이터
@@ -1054,27 +1056,77 @@
             localStorage.setItem('briefingHistory', JSON.stringify(history));
         }
 
+        // ✅ SECURITY: HTML 이스케이프 함수 (XSS 방지)
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ✅ SECURITY: localStorage 데이터 검증
+        function validateHistoryEntry(entry) {
+            if (!entry || typeof entry !== 'object') return false;
+            if (typeof entry.greeting !== 'string') return false;
+            if (typeof entry.language !== 'string') return false;
+            if (typeof entry.dateDisplay !== 'string') return false;
+            return true;
+        }
+
         // 히스토리 보기
         function showHistory() {
             const modal = document.getElementById('historyModal');
             const historyList = document.getElementById('historyList');
-            const history = JSON.parse(localStorage.getItem('briefingHistory') || '[]');
+
+            // ✅ SECURITY: localStorage 데이터 안전하게 파싱
+            let history = [];
+            try {
+                const rawHistory = localStorage.getItem('briefingHistory');
+                if (rawHistory) {
+                    history = JSON.parse(rawHistory);
+                    // 배열이 아니면 빈 배열로 초기화
+                    if (!Array.isArray(history)) {
+                        history = [];
+                        localStorage.setItem('briefingHistory', '[]');
+                    }
+                    // 각 항목 검증
+                    history = history.filter(validateHistoryEntry);
+                }
+            } catch (e) {
+                console.error('Failed to parse history:', e);
+                history = [];
+                localStorage.setItem('briefingHistory', '[]');
+            }
+
+            // 기존 내용 제거
+            historyList.innerHTML = '';
 
             if (history.length === 0) {
-                historyList.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:40px 16px;">' +
-                    (currentLanguage === 'ko' ? '저장된 조회 기록이 없습니다.' : 'No saved briefing history.') +
-                    '</p>';
+                const emptyMsg = document.createElement('p');
+                emptyMsg.style.cssText = 'text-align:center; color:#9ca3af; padding:40px 16px;';
+                emptyMsg.textContent = currentLanguage === 'ko' ? '저장된 조회 기록이 없습니다.' : 'No saved briefing history.';
+                historyList.appendChild(emptyMsg);
             } else {
-                historyList.innerHTML = history.map((entry, index) => {
+                // ✅ SECURITY: DOM 직접 생성 (innerHTML 대신)
+                history.forEach((entry, index) => {
                     const preview = entry.greeting || (currentLanguage === 'ko' ? '조회 내용 없음' : 'No content');
                     const shortPreview = preview.length > 60 ? preview.substring(0, 60) + '...' : preview;
-                    return `
-                        <div class="history-item" onclick="loadHistoryItem(${index})">
-                            <div class="history-date">${entry.dateDisplay} [${entry.language.toUpperCase()}]</div>
-                            <div class="history-preview">${shortPreview}</div>
-                        </div>
-                    `;
-                }).join('');
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'history-item';
+                    itemDiv.onclick = () => loadHistoryItem(index);
+
+                    const dateDiv = document.createElement('div');
+                    dateDiv.className = 'history-date';
+                    dateDiv.textContent = `${entry.dateDisplay} [${entry.language.toUpperCase()}]`;
+
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'history-preview';
+                    previewDiv.textContent = shortPreview; // ✅ XSS 안전
+
+                    itemDiv.appendChild(dateDiv);
+                    itemDiv.appendChild(previewDiv);
+                    historyList.appendChild(itemDiv);
+                });
             }
 
             modal.style.display = 'block';
