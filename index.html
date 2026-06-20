@@ -409,6 +409,12 @@
                 </div>
             </div>
 
+            <!-- 추가 문장 섹션 -->
+            <div class="form-group">
+                <label id="labelExtra">✏️ 추가 문장 (선택)</label>
+                <textarea id="extraText" rows="3" placeholder="오늘 특별히 전달할 내용을 입력하세요..." style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #ddd; font-size:14px; resize:vertical;"></textarea>
+            </div>
+
             <!-- 미리보기 -->
             <div class="preview" id="preview">
                 여기에 조회 내용이 미리보기로 표시됩니다...
@@ -780,6 +786,8 @@
                 const keywordLabels = selectedKeywords.map(k => t.keywords[k] || k);
                 text += (currentLanguage === 'ko' ? '키워드: ' : 'Keywords: ') + keywordLabels.join(', ') + '. ';
             }
+            const extraVal = document.getElementById('extraText').value.trim();
+            if (extraVal) text += extraVal + ' ';
 
             document.getElementById('preview').textContent = text || (currentLanguage === 'ko'
                 ? '여기에 조회 내용이 미리보기로 표시됩니다...'
@@ -944,10 +952,10 @@
 
             const mottoClosings = {
                 ko: [
-                    'Family Serving Family 정신으로 오늘도 함께 최선을 다합시다. 감사합니다.',
-                    'We Go Where You Go. 우리는 언제나 여러분과 함께합니다. 감사합니다.',
-                    'Respect Everyone. 서로를 존중하는 하루가 되길 바랍니다. 감사합니다.',
-                    'Be All You Can Be. 오늘도 최고의 자신이 되어 주십시오. 감사합니다.',
+                    '군인 가족을 위한 봉사 정신으로 오늘도 함께 최선을 다합시다. 감사합니다.',
+                    '우리는 언제나 여러분과 함께합니다. 오늘도 수고하십시오. 감사합니다.',
+                    '서로를 존중하고 배려하는 하루가 되길 바랍니다. 감사합니다.',
+                    '오늘도 최고의 자신이 되어 주십시오. 함께라면 할 수 있습니다. 감사합니다.',
                 ],
                 en: [
                     'Family Serving Family. Let\'s make it a great day. Thank you.',
@@ -957,6 +965,7 @@
                 ]
             };
             const mottoIndex = new Date().getDay() % mottoClosings.ko.length;
+            const extraText = document.getElementById('extraText').value.trim();
 
             if (currentLanguage === 'ko') {
                 parts.push(`${greeting ? greeting : '안녕하세요, 여러분.'}`);
@@ -968,6 +977,7 @@
                     const kwText = kw.length === 1 ? kw[0] : kw.slice(0, -1).join(', ') + ' 그리고 ' + kw[kw.length - 1];
                     parts.push(`오늘의 키워드는 ${kwText}입니다. 이 가치를 실천하는 하루가 되길 바랍니다.`);
                 }
+                if (extraText) parts.push(extraText);
                 parts.push(mottoClosings.ko[mottoIndex]);
             } else {
                 parts.push(`${greeting ? greeting : 'Good morning, everyone.'}`);
@@ -979,6 +989,7 @@
                     const kwText = kw.length === 1 ? kw[0] : kw.slice(0, -1).join(', ') + ' and ' + kw[kw.length - 1];
                     parts.push(`Today's keywords are ${kwText}. Let's put these values into practice.`);
                 }
+                if (extraText) parts.push(extraText);
                 parts.push(mottoClosings.en[mottoIndex]);
             }
 
@@ -1015,6 +1026,7 @@
             document.getElementById('customGreeting').style.display = 'none';
             document.getElementById('weather').value = '';
             document.getElementById('focusSelect').value = '';
+            document.getElementById('extraText').value = '';
             selectedKeywords = [];
             renderKeywords();
             updatePreview();
@@ -1048,7 +1060,8 @@
                 greeting: greeting,
                 weather: document.getElementById('weather').value,
                 focus: document.getElementById('focusSelect').value,
-                keywords: [...selectedKeywords]
+                keywords: [...selectedKeywords],
+                extra: document.getElementById('extraText').value.trim()
             };
 
             history.unshift(entry);
@@ -1154,6 +1167,7 @@
             // 데이터 로드
             document.getElementById('weather').value = entry.weather || '';
             document.getElementById('focusSelect').value = entry.focus || '';
+            document.getElementById('extraText').value = entry.extra || '';
             selectedKeywords = entry.keywords || [];
             renderKeywordButtons();
 
@@ -1224,6 +1238,7 @@
             document.getElementById('weather').addEventListener('input', updatePreview);
             document.getElementById('focusSelect').addEventListener('change', updatePreview);
             document.getElementById('customGreeting').addEventListener('input', updatePreview);
+            document.getElementById('extraText').addEventListener('input', updatePreview);
             // keyword buttons use onclick directly
         }
 
